@@ -1,9 +1,14 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme.dart';
+import '../../models/mood_entry.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/mood_provider.dart';
+import '../../screens/mood/mood_input_sheet.dart';
+import '../../widgets/mood_selector.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -72,13 +77,30 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => ref.read(authProvider.notifier).logout(),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppTheme.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.logout_rounded,
+                              color: AppTheme.error,
+                              size: 22,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    // Mood card
-                    _TodayMoodCard(onTap: () => context.push('/mood')),
-                    const SizedBox(height: 20),
-                    // Stats
+                    const _TodayMoodCard(),
+                    const SizedBox(height: 16),
+                    const _WeekCard(),
+                    const SizedBox(height: 16),
                     const _StatsRow(),
                     const SizedBox(height: 24),
                     Text(
@@ -114,15 +136,17 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _TodayMoodCard extends StatelessWidget {
-  final VoidCallback onTap;
+// ── Today mood card ────────────────────────────────────────────────────────
 
-  const _TodayMoodCard({required this.onTap});
+class _TodayMoodCard extends ConsumerWidget {
+  const _TodayMoodCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final today = ref.watch(todayMoodProvider);
+
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => MoodInputSheet.show(context, existingEntry: today),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -133,60 +157,266 @@ class _TodayMoodCard extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(AppTheme.cardRadius),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Bagaimana perasaanmu?',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  'Ketuk untuk catat',
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: Colors.white.withValues(alpha: 0.65),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: ['😔', '😕', '😐', '🙂', '😄'].map((emoji) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(emoji,
-                          style: const TextStyle(fontSize: 22)),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
+        child: today != null
+            ? _MoodSetContent(entry: today)
+            : const _MoodEmptyContent(),
       ),
     );
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  const _StatsRow();
+class _MoodSetContent extends StatelessWidget {
+  final MoodEntry entry;
+
+  const _MoodSetContent({required this.entry});
 
   @override
   Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(entry.mood.emoji, style: const TextStyle(fontSize: 40)),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Mood hari ini',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.75),
+                ),
+              ),
+              Text(
+                entry.mood.label,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              if (entry.note != null && entry.note!.isNotEmpty)
+                Text(
+                  entry.note!,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
+        ),
+        Text(
+          'Ketuk untuk ubah',
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            color: Colors.white.withValues(alpha: 0.65),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MoodEmptyContent extends StatelessWidget {
+  const _MoodEmptyContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Bagaimana perasaanmu?',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.85),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              'Ketuk untuk catat',
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                color: Colors.white.withValues(alpha: 0.65),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: ['😔', '😕', '😐', '🙂', '😄'].map((emoji) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(emoji, style: const TextStyle(fontSize: 22)),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Week summary card ──────────────────────────────────────────────────────
+
+class _WeekCard extends ConsumerWidget {
+  const _WeekCard();
+
+  static const _dayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final week = ref.watch(weekMoodProvider);
+    final streak = ref.watch(streakProvider);
+    final today = DateTime.now();
+
+    final groups = List.generate(7, (i) {
+      final entry = week[i];
+      return BarChartGroupData(
+        x: i,
+        barRods: [
+          BarChartRodData(
+            toY: entry != null ? (entry.mood.index + 1).toDouble() : 0.0,
+            color: entry != null
+                ? MoodSelector.colorFor(entry.mood)
+                : AppTheme.divider,
+            width: 20,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+          ),
+        ],
+      );
+    });
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: AppTheme.divider.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(
+                'Minggu Ini',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              if (streak > 0) ...[
+                const Text('🔥', style: TextStyle(fontSize: 14)),
+                const SizedBox(width: 4),
+                Text(
+                  '$streak hari',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFE17055),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              GestureDetector(
+                onTap: () => context.push('/mood/history'),
+                child: Text(
+                  'Lihat Semua',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 90,
+            child: BarChart(
+              BarChartData(
+                maxY: 5,
+                minY: 0,
+                barGroups: groups,
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                barTouchData: BarTouchData(enabled: false),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 22,
+                      getTitlesWidget: (value, meta) {
+                        final day = today.subtract(
+                          Duration(days: 6 - value.toInt()),
+                        );
+                        final label = _dayLabels[day.weekday - 1];
+                        final isToday = value.toInt() == 6;
+                        return SideTitleWidget(
+                          axisSide: meta.axisSide,
+                          child: Text(
+                            label,
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: isToday
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
+                              color: isToday
+                                  ? AppTheme.primary
+                                  : AppTheme.textHint,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Stats row ──────────────────────────────────────────────────────────────
+
+class _StatsRow extends ConsumerWidget {
+  const _StatsRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final moodCount = ref.watch(
+      moodProvider.select((v) => v.valueOrNull?.length ?? 0),
+    );
+
     return Row(
       children: [
         Expanded(
@@ -201,7 +431,7 @@ class _StatsRow extends StatelessWidget {
         Expanded(
           child: _StatCard(
             icon: Icons.mood_rounded,
-            value: '7',
+            value: '$moodCount',
             label: 'Mood',
             color: const Color(0xFFE17055),
           ),
@@ -240,8 +470,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        border: Border.all(
-            color: AppTheme.divider.withValues(alpha: 0.5)),
+        border: Border.all(color: AppTheme.divider.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,6 +506,8 @@ class _StatCard extends StatelessWidget {
   }
 }
 
+// ── Meditation card ────────────────────────────────────────────────────────
+
 class _MeditationCard extends StatelessWidget {
   final int index;
 
@@ -296,8 +527,7 @@ class _MeditationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        border: Border.all(
-            color: AppTheme.divider.withValues(alpha: 0.5)),
+        border: Border.all(color: AppTheme.divider.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [

@@ -8,6 +8,7 @@ import '../screens/home/home_screen.dart';
 import '../screens/journal/journal_screen.dart';
 import '../screens/chat/chat_screen.dart';
 import '../screens/zen/zen_screen.dart';
+import '../screens/mood/mood_history_screen.dart';
 import '../screens/mood/mood_input_screen.dart';
 import '../widgets/main_shell.dart';
 import 'theme.dart';
@@ -99,6 +100,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/mood',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const MoodInputScreen(),
+      ),
+      GoRoute(
+        path: '/mood/history',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const MoodHistoryScreen(),
       ),
     ],
   );
