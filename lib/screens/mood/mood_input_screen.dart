@@ -1,32 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme.dart';
+import '../../models/mood_entry.dart';
+import '../../providers/mood_provider.dart';
+import '../../widgets/mood_selector.dart';
 
-class MoodInputScreen extends StatefulWidget {
+class MoodInputScreen extends ConsumerStatefulWidget {
   const MoodInputScreen({super.key});
 
   @override
-  State<MoodInputScreen> createState() => _MoodInputScreenState();
+  ConsumerState<MoodInputScreen> createState() => _MoodInputScreenState();
 }
 
-class _MoodInputScreenState extends State<MoodInputScreen> {
+class _MoodInputScreenState extends ConsumerState<MoodInputScreen> {
   int _selectedMood = -1;
   final _noteController = TextEditingController();
-  final _selectedTags = <String>{};
+  final _selectedActivities = <String>{};
+  bool _saving = false;
 
-  static const _moods = [
-    ('😔', 'Sangat\nBuruk', Color(0xFFD63031)),
-    ('😕', 'Buruk', Color(0xFFE17055)),
-    ('😐', 'Biasa', Color(0xFFB2BEC3)),
-    ('🙂', 'Baik', Color(0xFF00B894)),
-    ('😄', 'Sangat\nBaik', Color(0xFF6C5CE7)),
-  ];
-
-  static const _tags = [
-    'Cemas', 'Tenang', 'Lelah', 'Bersemangat',
-    'Sendirian', 'Bersyukur', 'Stres', 'Bahagia',
-    'Sedih', 'Antusias',
+  static const _activities = [
+    'Kerja',
+    'Olahraga',
+    'Sosial',
+    'Keluarga',
+    'Belajar',
+    'Hiburan',
+    'Istirahat',
   ];
 
   @override
@@ -35,9 +36,27 @@ class _MoodInputScreenState extends State<MoodInputScreen> {
     super.dispose();
   }
 
-  void _save() {
-    // TODO: dispatch save mood action via provider
-    context.pop();
+  Future<void> _save() async {
+    if (_selectedMood < 0) return;
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(moodProvider.notifier)
+          .addEntry(
+            mood: MoodLevel.values[_selectedMood],
+            note: _noteController.text,
+            tags: _selectedActivities.toList(),
+          );
+      if (mounted) context.pop();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Gagal menyimpan mood')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -54,7 +73,7 @@ class _MoodInputScreenState extends State<MoodInputScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: TextButton(
-              onPressed: _selectedMood >= 0 ? _save : null,
+              onPressed: _selectedMood >= 0 && !_saving ? _save : null,
               child: const Text('Simpan'),
             ),
           ),
@@ -75,62 +94,13 @@ class _MoodInputScreenState extends State<MoodInputScreen> {
               ),
             ),
             const SizedBox(height: 28),
-            // Mood selector
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: _moods.asMap().entries.map((entry) {
-                final i = entry.key;
-                final (emoji, label, color) = entry.value;
-                final isSelected = _selectedMood == i;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedMood = i),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 58,
-                    height: 78,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? color.withValues(alpha: 0.12)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
-                      border: isSelected
-                          ? Border.all(color: color, width: 2)
-                          : Border.all(
-                              color: Colors.transparent, width: 2),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: TextStyle(
-                              fontSize: isSelected ? 32 : 26),
-                          child: Text(emoji),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          label,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 9,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                            color: isSelected
-                                ? color
-                                : AppTheme.textHint,
-                            height: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+            MoodSelector(
+              selectedIndex: _selectedMood,
+              onSelected: (i) => setState(() => _selectedMood = i),
             ),
             const SizedBox(height: 28),
             Text(
-              'Apa yang kamu rasakan?',
+              'Aktivitas hari ini',
               style: GoogleFonts.poppins(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -141,29 +111,27 @@ class _MoodInputScreenState extends State<MoodInputScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _tags.map((tag) {
-                final isSelected = _selectedTags.contains(tag);
+              children: _activities.map((tag) {
+                final isSelected = _selectedActivities.contains(tag);
                 return GestureDetector(
-                  onTap: () => setState(() {
-                    if (isSelected) {
-                      _selectedTags.remove(tag);
-                    } else {
-                      _selectedTags.add(tag);
-                    }
-                  }),
+                  onTap: () => setState(
+                    () => isSelected
+                        ? _selectedActivities.remove(tag)
+                        : _selectedActivities.add(tag),
+                  ),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? AppTheme.primary.withValues(alpha: 0.1)
                           : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: isSelected
-                            ? AppTheme.primary
-                            : AppTheme.divider,
+                        color: isSelected ? AppTheme.primary : AppTheme.divider,
                         width: isSelected ? 1.5 : 1,
                       ),
                     ),
@@ -197,7 +165,9 @@ class _MoodInputScreenState extends State<MoodInputScreen> {
               controller: _noteController,
               maxLines: 4,
               style: GoogleFonts.poppins(
-                  fontSize: 14, color: AppTheme.textPrimary),
+                fontSize: 14,
+                color: AppTheme.textPrimary,
+              ),
               decoration: const InputDecoration(
                 hintText: 'Tulis apa yang ada di pikiranmu...',
               ),
@@ -206,8 +176,17 @@ class _MoodInputScreenState extends State<MoodInputScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _selectedMood >= 0 ? _save : null,
-                child: const Text('Simpan Mood'),
+                onPressed: _selectedMood >= 0 && !_saving ? _save : null,
+                child: _saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Simpan Mood'),
               ),
             ),
           ],

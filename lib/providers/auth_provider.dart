@@ -72,7 +72,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = state.copyWith(status: AuthStatus.authenticated, user: user);
     } catch (e) {
-      log(e.toString());
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
         error: _parseError(e),

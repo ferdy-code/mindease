@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'constants.dart';
@@ -80,7 +82,6 @@ class _AuthInterceptor extends Interceptor {
       '${AppConstants.apiBaseUrl}/auth/refresh',
       data: {'refreshToken': refreshToken},
     );
-
     if (response.statusCode == 200) {
       final data = response.data as Map<String, dynamic>;
       await prefs.setString(
