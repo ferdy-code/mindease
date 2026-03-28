@@ -78,16 +78,20 @@ class _AuthInterceptor extends Interceptor {
 
     final response = await Dio().post(
       '${AppConstants.apiBaseUrl}/auth/refresh',
-      data: {'refresh_token': refreshToken},
+      data: {'refreshToken': refreshToken},
     );
 
     if (response.statusCode == 200) {
       final data = response.data as Map<String, dynamic>;
       await prefs.setString(
-          AppConstants.tokenKey, data['access_token'] as String);
-      if (data['refresh_token'] != null) {
+        AppConstants.tokenKey,
+        data['accessToken'] as String,
+      );
+      if (data['refreshToken'] != null) {
         await prefs.setString(
-            AppConstants.refreshTokenKey, data['refresh_token'] as String);
+          AppConstants.refreshTokenKey,
+          data['refreshToken'] as String,
+        );
       }
       return true;
     }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,17 +14,9 @@ class AuthState {
   final User? user;
   final String? error;
 
-  const AuthState({
-    this.status = AuthStatus.initial,
-    this.user,
-    this.error,
-  });
+  const AuthState({this.status = AuthStatus.initial, this.user, this.error});
 
-  AuthState copyWith({
-    AuthStatus? status,
-    User? user,
-    String? error,
-  }) =>
+  AuthState copyWith({AuthStatus? status, User? user, String? error}) =>
       AuthState(
         status: status ?? this.status,
         user: user ?? this.user,
@@ -46,9 +39,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (token != null && userData != null) {
       try {
         final user = User.fromJson(
-            jsonDecode(userData) as Map<String, dynamic>);
-        state = state.copyWith(
-            status: AuthStatus.authenticated, user: user);
+          jsonDecode(userData) as Map<String, dynamic>,
+        );
+        state = state.copyWith(status: AuthStatus.authenticated, user: user);
       } catch (_) {
         state = state.copyWith(status: AuthStatus.unauthenticated);
       }
@@ -64,21 +57,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
         '/auth/login',
         data: {'email': email, 'password': password},
       );
-
-      final data = response.data as Map<String, dynamic>;
+      final data = response.data['data'] as Map<String, dynamic>;
       final user = User.fromJson(data['user'] as Map<String, dynamic>);
-
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
-          AppConstants.tokenKey, data['access_token'] as String);
+        AppConstants.tokenKey,
+        data['accessToken'] as String,
+      );
       await prefs.setString(
-          AppConstants.refreshTokenKey, data['refresh_token'] as String);
-      await prefs.setString(
-          AppConstants.userKey, jsonEncode(user.toJson()));
+        AppConstants.refreshTokenKey,
+        data['refreshToken'] as String,
+      );
+      await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
 
-      state = state.copyWith(
-          status: AuthStatus.authenticated, user: user);
+      state = state.copyWith(status: AuthStatus.authenticated, user: user);
     } catch (e) {
+      log(e.toString());
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
         error: _parseError(e),
@@ -99,14 +93,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
-          AppConstants.tokenKey, data['access_token'] as String);
+        AppConstants.tokenKey,
+        data['accessToken'] as String,
+      );
       await prefs.setString(
-          AppConstants.refreshTokenKey, data['refresh_token'] as String);
-      await prefs.setString(
-          AppConstants.userKey, jsonEncode(user.toJson()));
+        AppConstants.refreshTokenKey,
+        data['refreshToken'] as String,
+      );
+      await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
 
-      state = state.copyWith(
-          status: AuthStatus.authenticated, user: user);
+      state = state.copyWith(status: AuthStatus.authenticated, user: user);
     } catch (e) {
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
@@ -135,7 +131,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-final authProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(ApiClient());
 });

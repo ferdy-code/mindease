@@ -8,20 +8,23 @@ class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.shell});
 
   void _onTabTapped(int index) {
-    shell.goBranch(
-      index,
-      initialLocation: index == shell.currentIndex,
-    );
+    shell.goBranch(index, initialLocation: index == shell.currentIndex);
   }
 
   @override
   Widget build(BuildContext context) {
+    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     return Scaffold(
       body: shell,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/mood'),
-        tooltip: 'Catat Mood',
-        child: const Icon(Icons.add_rounded, size: 28),
+      floatingActionButton: AnimatedScale(
+        scale: keyboardVisible ? 0.0 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        child: FloatingActionButton(
+          onPressed: () => context.push('/mood'),
+          tooltip: 'Catat Mood',
+          child: const Icon(Icons.add_rounded, size: 28),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _BottomNav(
@@ -128,8 +131,7 @@ class _NavItem extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 10,
-                fontWeight:
-                    isActive ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                 color: isActive ? AppTheme.primary : AppTheme.textHint,
               ),
             ),
