@@ -16,16 +16,16 @@ class MainShell extends StatelessWidget {
     final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     return Scaffold(
       body: shell,
-      floatingActionButton: AnimatedScale(
-        scale: keyboardVisible ? 0.0 : 1.0,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        child: FloatingActionButton(
-          onPressed: () => context.push('/mood'),
-          tooltip: 'Catat Mood',
-          child: const Icon(Icons.add_rounded, size: 28),
-        ),
-      ),
+      // floatingActionButton: AnimatedScale(
+      //   scale: keyboardVisible ? 0.0 : 1.0,
+      //   duration: const Duration(milliseconds: 200),
+      //   curve: Curves.easeInOut,
+      //   child: FloatingActionButton(
+      //     onPressed: () => context.push('/mood'),
+      //     tooltip: 'Catat Mood',
+      //     child: const Icon(Icons.add_rounded, size: 28),
+      //   ),
+      // ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _BottomNav(
         currentIndex: shell.currentIndex,
@@ -68,7 +68,7 @@ class _BottomNav extends StatelessWidget {
               isActive: currentIndex == 1,
               onTap: () => onTap(1),
             ),
-            const SizedBox(width: 56), // notch gap
+            // const SizedBox(width: 56), // notch gap
             _NavItem(
               icon: Icons.chat_bubble_outline_rounded,
               activeIcon: Icons.chat_bubble_rounded,

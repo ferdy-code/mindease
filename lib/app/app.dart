@@ -5,8 +5,10 @@ import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/home/home_screen.dart';
-import '../screens/journal/journal_screen.dart';
-import '../screens/chat/chat_screen.dart';
+import '../screens/journal/journal_editor_screen.dart';
+import '../screens/journal/journal_list_screen.dart';
+import '../screens/chat/chat_list_screen.dart';
+import '../screens/chat/chat_detail_screen.dart';
 import '../screens/zen/zen_screen.dart';
 import '../screens/mood/mood_history_screen.dart';
 import '../screens/mood/mood_input_screen.dart';
@@ -74,7 +76,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/journal',
-                builder: (context, state) => const JournalScreen(),
+                builder: (context, state) => const JournalListScreen(),
               ),
             ],
           ),
@@ -82,7 +84,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/chat',
-                builder: (context, state) => const ChatScreen(),
+                builder: (context, state) => const ChatListScreen(),
               ),
             ],
           ),
@@ -95,6 +97,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/journal/new',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const JournalEditorScreen(),
+      ),
+      GoRoute(
+        path: '/journal/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => JournalEditorScreen(
+          entryId: state.pathParameters['id'],
+        ),
+      ),
+      GoRoute(
+        path: '/chat/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => ChatDetailScreen(
+          sessionId: state.pathParameters['id']!,
+        ),
       ),
       GoRoute(
         path: '/mood',
